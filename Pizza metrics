@@ -1,0 +1,159 @@
+
+  --SQL CASE STUDY
+  --Pizza Metrics
+--Retrieve the total number of order placed
+SELECT COUNT (DISTINCT order_id) Total_Orders
+FROM runner_orders
+
+--How many unique customer orders were made?
+SELECT COUNT (DISTINCT customer_id) "Unique Customers"
+FROM customer_orders
+
+SELECT DISTINCT COUNT (customer_id) "Unique Customers"
+FROM customer_orders
+
+--How many successful orders were delivered by each runner?
+SELECT COUNT (*) Successful_Orders
+FROM runner_orders
+WHERE cancellation IS NULL
+
+SELECT runner_id, COUNT(*) AS Successful_Orders
+FROM runner_orders
+WHERE cancellation IS NULL
+GROUP BY runner_id
+
+
+--How many of each type of pizza was delivered?
+SELECT pizza_name Pizza_type, COUNT(*)  Total_Delivered
+FROM pizza_names N
+JOIN customer_orders C ON N.pizza_id = C.pizza_id
+Join runner_orders R ON C.order_id = R.order_id
+WHERE cancellation IS NULL
+GROUP BY pizza_name
+
+
+--How many Vegetarian and Meatlovers were ordered by each customer?
+SELECT C.customer_id, N.pizza_name, COUNT(*) AS order_count
+FROM pizza_names N
+JOIN customer_orders C ON N.pizza_id = C.pizza_id
+JOIN runner_orders R ON C.order_id = R.order_id
+WHERE R.cancellation IS NULL
+GROUP BY C.customer_id, N.pizza_name;
+
+--What was the maximum number of pizzas delivered in a single order?
+SELECT MAX(pizza_count) Max_pizza_order
+FROM
+(
+SELECT C.order_id, COUNT (*) pizza_count
+FROM runner_orders O JOIN customer_orders C
+ON O.order_id = C.order_id
+WHERE cancellation IS NULL
+GROUP BY C.order_id
+) pizza_count
+
+
+--For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
+SELECT customer_id,
+SUM(CASE
+WHEN C.exclusions IS NULL AND C.extras IS NULL THEN 1
+ELSE 0 END) No_changes,
+SUM (CASE WHEN C.exclusions IS NOT NULL 
+AND C.extras IS NOT NULL THEN 1
+ELSE 0 END) With_changes
+FROM customer_orders C 
+JOIN runner_orders R ON C.order_id = R.order_id
+JOIN pizza_recipes RPC ON C.pizza_id = RPC.pizza_id
+WHERE cancellation IS NULL
+GROUP BY customer_id
+
+
+--How many pizzas were delivered that had both exclusions and extras?
+SELECT COUNT (*) pizza_with_both_exclusions_extra
+FROM customer_orders CO
+JOIN runner_orders RO ON CO.order_id = RO.order_id
+WHERE cancellation IS NULL
+AND CO.exclusions IS NOT NULL
+AND CO.extras IS NOT NULL
+
+
+
+--What was the total volume of pizzas ordered for each hour of the day?
+SELECT 
+DATEPART(HOUR, order_time) AS hour_of_day,
+COUNT(*) AS total_pizzas_ordered
+FROM customer_orders
+GROUP BY DATEPART(HOUR, order_time)
+ORDER BY hour_of_day;
+
+--What was the volume of orders for each day of the week?
+SELECT 
+DATEPART(DAY, order_time) AS hour_of_day,
+COUNT(*) AS total_pizzas_ordered
+FROM customer_orders
+GROUP BY DATEPART(DAY, order_time)
+ORDER BY hour_of_day;
+
+
+-- Runner and Customer Experience
+--How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
+SELECT 
+DATEADD(DAY, DATEDIFF(DAY, '2021-01-01', registration_date) / 7 * 7, '2021-01-01') AS week_starting,
+COUNT(*) AS runners_signed_up
+FROM runners
+GROUP BY DATEADD(DAY, DATEDIFF(DAY, '2021-01-01', registration_date) / 7 * 7, '2021-01-01')
+ORDER BY week_starting;
+
+SELECT * FROM runners
+
+--What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+SELECT runner_id, AVG(duration) Avg_duration
+FROM runner_orders
+WHERE cancellation IS NULL 
+GROUP BY runner_id
+
+
+--Is there any relationship between the number of pizzas and how long the order takes to prepare?
+SELECT CO.order_id, SUM(RO.duration) Duration
+FROM customer_orders CO
+JOIN runner_orders RO ON CO.order_id = RO.order_id
+WHERE RO.cancellation IS NULL
+GROUP BY CO.order_id
+
+--What was the average distance travelled for each customer?
+SELECT CO.customer_id, AVG(RO.distance)  Avg_Distance
+FROM customer_orders CO
+JOIN runner_orders RO ON CO.order_id = RO.order_id
+WHERE RO.cancellation IS NULL
+GROUP BY CO.customer_id
+
+--What was the difference between the longest and shortest delivery times for all orders?
+SELECT MAX(duration) - MIN(duration) AS delivery_time_difference
+FROM runner_orders
+WHERE cancellation IS NULL;
+
+--What was the average speed for each runner for each delivery and do you notice any trend for these values?
+SELECT R.runner_id, AVG(RO.distance / (RO.duration/60.0)) AS Avg_Speed_kmh
+FROM runners R
+JOIN runner_orders RO ON R.runner_id = RO.runner_id
+WHERE RO.cancellation IS NULL
+GROUP BY R.runner_id
+
+--What is the successful delivery percentage for each runner?
+SELECT runner_id, COUNT(CASE WHEN cancellation IS NULL THEN 1 END) * 100.0 / COUNT(*) AS success_percentage
+FROM runner_orders
+GROUP BY runner_id;
+
+
+
+--What is the successful delivery percentage for each runner?
+SELECT *
+FROM runner_orders
+GROUP BY runner_id;
+
+SELECT TOP 3* FROM runners
+SELECT TOP 3* FROM customer_orders
+SELECT TOP 3* FROM runner_orders
+SELECT TOP 3* FROM pizza_names
+SELECT TOP 3* FROM pizza_recipes
+SELECT TOP 3* FROM pizza_toppings
+
